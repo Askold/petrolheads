@@ -1,0 +1,22 @@
+# DOMAIN comes from .env, e.g. petrolheads.example.com (Caddy gets a TLS cert automatically)
+# or http://localhost for local testing.
+{$DOMAIN} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+	handle /bot/* {
+		reverse_proxy backend:8080
+	}
+	handle /media/* {
+		reverse_proxy backend:8080
+	}
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+	}
+}

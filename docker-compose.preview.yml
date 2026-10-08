@@ -1,0 +1,49 @@
+# Throwaway preview stack with DEV_AUTH (fake admin login) for checking the UI in a normal browser.
+# Binds to loopback only; reach it through an SSH tunnel:
+#   docker compose -p petrolheads-preview -f docker-compose.preview.yml up -d --build
+#   ssh -L 8088:localhost:8088 <server>   then open http://localhost:8088
+# Never expose this publicly: anyone could act as the dev admin.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: petrolheads
+      POSTGRES_USER: petrolheads
+      POSTGRES_PASSWORD: preview
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petrolheads"]
+      interval: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      DEV_AUTH: "true"
+      BOT_TOKEN: dev
+      DATABASE_URL: jdbc:postgresql://db:5432/petrolheads
+      DATABASE_USER: petrolheads
+      DATABASE_PASSWORD: preview
+      CUTOUT_URL: http://cutout:7000
+      JAVA_OPTS: -Xmx256m -XX:+UseSerialGC
+    mem_limit: 384m
+    depends_on:
+      db:
+        condition: service_healthy
+
+  cutout:
+    build: ./cutout
+    mem_limit: 1600m
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_DEV_AUTH: "true"
+    environment:
+      DOMAIN: ":8088"
+    ports:
+      - "127.0.0.1:8088:8088"
+    depends_on:
+      - backend

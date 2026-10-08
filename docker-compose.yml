@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: petrolheads
+      POSTGRES_USER: petrolheads
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432" # loopback only, for local dev / ssh tunnel
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petrolheads"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/petrolheads
+      DATABASE_USER: petrolheads
+      CUTOUT_URL: http://cutout:7000
+      JAVA_OPTS: -Xmx320m -XX:+UseSerialGC
+    mem_limit: 512m
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      cutout:
+        condition: service_healthy
+
+  # Background removal for car photos (rembg, CPU). Internal only; ~1.1 GB RAM while loaded.
+  cutout:
+    build: ./cutout
+    restart: unless-stopped
+    mem_limit: 1600m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7000/openapi.json')"]
+      interval: 5s
+      retries: 30
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

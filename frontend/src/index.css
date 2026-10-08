@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* Customisation-menu look: lime italic titles, dark translucent strips, frosted selector,
+   green stat bars with white knobs, black pill buttons with a light rim. */
+@theme {
+  --color-night: #0a0a0c;
+  --color-lime: #b9f05f;
+  --color-bar: #7ccc35;
+  --color-steel: #9a9ca3;
+  --color-hazard: #e0aa22;
+  --color-neon-pink: #ff5a7a;
+  --color-danger: #ff5a5a;
+  --font-display: "Barlow Condensed", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--color-night);
+  color: #f2f2f2;
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Back alley at night: original illustration (design/background/make_alley_bg.py), grey-pink palette. */
+.alley-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #14141b url("/bg-alley.svg") center top / cover no-repeat;
+}
+.alley-bg::after {
+  /* Slight dimming so text panels stay readable over the brighter parts of the scene. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.35));
+}
+
+/* In the components layer so Tailwind utilities (normal-case, text colours) can override them. */
+@layer components {
+.title-lime {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-lime);
+  text-shadow: 0 0 10px rgb(185 240 95 / 0.25), 0 2px 2px rgb(0 0 0 / 0.8);
+}
+
+.label-white {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #f4f4f4;
+  text-shadow: 0 2px 2px rgb(0 0 0 / 0.9);
+}
+
+/* Dark translucent strip behind headers and lists. */
+.strip {
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.5));
+  border-radius: 4px;
+}
+
+/* Frosted light selector band. */
+.frost {
+  background: linear-gradient(180deg, rgb(225 225 228 / 0.42), rgb(190 190 196 / 0.32));
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+  backdrop-filter: blur(2px);
+}
+
+/* Black pill with a light rim (double border like the game buttons). */
+.pill {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(180deg, #1b1b1d, #000 60%);
+  border: 2px solid #000;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1.5px #c9c9cc, inset 0 1px 0 rgb(255 255 255 / 0.12);
+  transition: box-shadow 0.12s, color 0.12s, transform 0.08s;
+}
+.pill:active,
+.pill[data-active="true"] {
+  color: var(--color-lime);
+  box-shadow: 0 0 0 1.5px var(--color-lime), 0 0 12px rgb(185 240 95 / 0.35);
+}
+.pill:active {
+  transform: scale(0.97);
+}
+.pill:disabled {
+  opacity: 0.4;
+}
+
+.circle-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 2px solid rgb(240 240 240 / 0.85);
+  color: rgb(240 240 240 / 0.9);
+  background: rgb(0 0 0 / 0.2);
+  transition: transform 0.08s, border-color 0.12s, color 0.12s;
+}
+.circle-arrow:active {
+  transform: scale(0.9);
+  border-color: var(--color-lime);
+  color: var(--color-lime);
+}
+
+.lime-frame {
+  border: 2.5px solid var(--color-lime);
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgb(185 240 95 / 0.35), inset 0 0 8px rgb(185 240 95 / 0.15);
+}
+
+.field {
+  width: 100%;
+  background: rgb(0 0 0 / 0.55);
+  border: 1.5px solid rgb(200 200 205 / 0.35);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-family: var(--font-body);
+  color: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field:focus {
+  border-color: var(--color-lime);
+  box-shadow: 0 0 10px rgb(185 240 95 / 0.25);
+}
+.field::placeholder {
+  color: rgb(154 156 163 / 0.7);
+}
+select.field option {
+  background: #111;
+}
+
+/* Stage under the car: soft spotlight on the ground. */
+.stage-light {
+  background: radial-gradient(45% 40% at 50% 62%, rgb(255 255 255 / 0.1), transparent 70%);
+}
+
+.reflection {
+  transform: scaleY(-1);
+  opacity: 0.2;
+  -webkit-mask-image: linear-gradient(to top, rgb(0 0 0 / 0.8), transparent 50%);
+  mask-image: linear-gradient(to top, rgb(0 0 0 / 0.8), transparent 50%);
+  filter: blur(1px);
+}
+}
