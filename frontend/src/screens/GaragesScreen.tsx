@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { useDrivers, useFeed } from "../api/client";
 import type { Car, Driver, FeedCar } from "../api/types";
+import { BrandLogo } from "../components/BrandLogo";
 import { CarDetailsSheet } from "../components/CarDetailsSheet";
 import { type CarFilter, MakeModelFilter, matchesFilter, NO_FILTER } from "../components/MakeModelFilter";
 import { Silhouette } from "../components/GarageStage";
@@ -132,7 +133,10 @@ export function GaragesScreen({
                   <CarImage car={f.car} fallback={f.car.make[0]} />
                 </div>
                 <div className="px-2 pb-2 pt-1">
-                  <div className="truncate text-xs text-steel">{f.car.make}</div>
+                  <div className="flex items-center gap-1 truncate text-xs text-steel">
+                    <BrandLogo make={f.car.make} className="h-3 w-3 shrink-0" />
+                    {f.car.make}
+                  </div>
                   <div className="label-white truncate text-lg normal-case leading-tight">{f.car.model}</div>
                   <div className="mt-0.5 flex items-center justify-between gap-1 text-xs">
                     <span className="truncate italic text-steel">{displayName(f.owner)}</span>

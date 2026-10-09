@@ -3,8 +3,10 @@ import { useState } from "react";
 import { useMyProfile, useProfile, useUpdateProfile } from "../api/client";
 import type { Car, Profile } from "../api/types";
 import { CarDetailsSheet } from "../components/CarDetailsSheet";
+import { brandLogo } from "../brandLogos";
+import { BrandLogo } from "../components/BrandLogo";
 import { GarageStage } from "../components/GarageStage";
-import { TierBadge, TierCard } from "../components/TierBadge";
+import { TierCard } from "../components/TierBadge";
 import {
   CircleArrow,
   Dots,
@@ -41,6 +43,34 @@ export function ProfileScreen({ userId, initialCarId, onEditCar }: Props) {
   return <ProfileView profile={query.data} initialCarId={initialCarId} onEditCar={onEditCar} />;
 }
 
+/**
+ * Lime-framed make tile, like the badge tile in the game's car select: the make's logo fills it
+ * with the name on a dark strip below; makes without a logo show just the name.
+ */
+function MakeTile({ make }: { make: string }) {
+  const hasLogo = brandLogo(make) != null;
+  return (
+    <div className="lime-frame relative flex h-[58px] w-[78px] shrink-0 flex-col items-center justify-center overflow-hidden bg-[#2a2a2d]/90">
+      {hasLogo ? (
+        <>
+          <BrandLogo make={make} className="h-[34px] w-[64px] text-white/85" />
+          <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 text-center font-display text-[10px] font-semibold uppercase not-italic leading-[14px] tracking-wide text-white">
+            {make}
+          </span>
+        </>
+      ) : (
+        <span
+          className={`line-clamp-2 break-words px-1 text-center font-display font-semibold uppercase not-italic leading-tight tracking-wide text-white ${
+            make.length <= 5 ? "text-xl" : make.length <= 8 ? "text-base" : "text-xs"
+          }`}
+        >
+          {make.replace("-", "-\u200b")}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** Frosted band: make tile in a lime frame next to a big faded make/model watermark. */
 function CarSelector({ car, onPrev, onNext }: { car: Car; onPrev: () => void; onNext: () => void }) {
   return (
@@ -55,11 +85,7 @@ function CarSelector({ car, onPrev, onNext }: { car: Car; onPrev: () => void; on
           transition={{ duration: 0.18 }}
           className="flex min-w-0 flex-1 items-center gap-3"
         >
-          <div className="lime-frame flex h-[58px] w-[78px] shrink-0 items-center justify-center bg-[#2a2a2d]/90 px-1">
-            <span className="truncate font-display text-xl font-semibold uppercase not-italic tracking-wide text-white/90">
-              {car.make}
-            </span>
-          </div>
+          <MakeTile make={car.make} />
           <div className="min-w-0 leading-none">
             <div className="truncate font-display text-xl font-semibold not-italic text-[#2c2c30]/80">{car.make}</div>
             <div className="line-clamp-2 font-display text-[26px] font-bold uppercase not-italic leading-[0.95] tracking-tight text-[#2c2c30]/85">
@@ -153,10 +179,7 @@ function ProfileView({
         <div className="flex min-w-0 flex-1 items-center gap-3 border-r border-white/15 px-3 py-2.5">
           {user.photoUrl && <img src={user.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-md object-cover" />}
           <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="label-white truncate text-2xl normal-case leading-none">{displayName(user)}</span>
-              <TierBadge tier={profile.tier.tier} size="sm" />
-            </div>
+            <div className="label-white truncate text-2xl normal-case leading-none">{displayName(user)}</div>
             <div className="truncate text-sm italic text-steel">
               {user.crew ? `${user.crew} · ` : ""}
               <span className="text-lime">
@@ -173,7 +196,7 @@ function ProfileView({
         )}
       </div>
 
-      <TierCard info={profile.tier} rep={profile.rep} />
+      <TierCard info={profile.tier} />
 
       {editing ? (
         <EditProfile profile={profile} onDone={() => setEditing(false)} />
@@ -226,23 +249,16 @@ function ProfileView({
   );
 }
 
+/** Only the bio is editable; the saved street name and crew are sent back unchanged (the API replaces all three). */
 function EditProfile({ profile, onDone }: { profile: Profile; onDone: () => void }) {
-  const [nickname, setNickname] = useState(profile.user.nickname ?? "");
-  const [crew, setCrew] = useState(profile.user.crew ?? "");
   const [bio, setBio] = useState(profile.user.bio ?? "");
   const update = useUpdateProfile();
   const { t } = useI18n();
 
   return (
     <Panel innerClassName="space-y-3 p-3">
-      <Field label={t.streetName}>
-        <input className="field" maxLength={32} value={nickname} onChange={(e) => setNickname(e.target.value)} />
-      </Field>
-      <Field label={t.crew}>
-        <input className="field" maxLength={32} value={crew} onChange={(e) => setCrew(e.target.value)} />
-      </Field>
       <Field label={t.bio}>
-        <textarea className="field" rows={3} maxLength={280} value={bio} onChange={(e) => setBio(e.target.value)} />
+        <textarea autoFocus className="field" rows={3} maxLength={280} value={bio} onChange={(e) => setBio(e.target.value)} />
       </Field>
       {update.isError && <ErrorBox error={update.error} />}
       <div className="flex justify-end gap-3">
@@ -251,7 +267,7 @@ function EditProfile({ profile, onDone }: { profile: Profile; onDone: () => void
           disabled={update.isPending}
           onClick={() =>
             update.mutate(
-              { nickname: nickname || null, crew: crew || null, bio: bio || null },
+              { nickname: profile.user.nickname, crew: profile.user.crew, bio: bio.trim() || null },
               { onSuccess: () => (haptic.success(), onDone()) },
             )
           }
