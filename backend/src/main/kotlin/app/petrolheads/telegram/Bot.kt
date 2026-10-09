@@ -2,7 +2,11 @@ package app.petrolheads.telegram
 
 import app.petrolheads.AppConfig
 import app.petrolheads.CarDto
+import app.petrolheads.auth.TelegramUser
+import app.petrolheads.db.AdminRepository
 import app.petrolheads.db.CarRepository
+import app.petrolheads.db.MusicRepository
+import app.petrolheads.db.UserRepository
 import app.petrolheads.photos.PhotoService
 import app.petrolheads.photos.PhotoSource
 import io.ktor.http.HttpStatusCode
@@ -79,6 +83,16 @@ private class BotText(ru: Boolean) {
     } else {
         "Welcome to the garage, racer. Open the app to set up your profile, or send me photos of your car and I'll add them to your garage."
     }
+    val musicAdded: (String) -> String = { name ->
+        if (ru) "🎵 «$name» добавлен в плейлист приложения." else "🎵 \"$name\" added to the app playlist."
+    }
+    val musicAdminsOnly = if (ru) "Музыку в приложение добавляют админы клуба." else "Only club admins can add music to the app."
+    val musicUnsupported = if (ru) {
+        "Этот формат не проиграется на всех телефонах. Пришлите трек в MP3 или M4A (голосовые не подходят)."
+    } else {
+        "That format won't play on every phone. Send the track as MP3 or M4A (voice messages don't work)."
+    }
+    val musicTooBig = if (ru) "Трек больше 20 МБ — Telegram не даёт ботам скачивать такие файлы." else "The track is over 20 MB, which Telegram doesn't let bots download."
     val cutoutNote = if (ru) " Через несколько секунд она появится на поворотном круге." else " It'll be on the turntable in a few seconds."
     val added: (Int, String) -> String = { n, car ->
         if (ru) (if (n == 1) "✅ Фото добавлено к $car." else "✅ Добавлено фото: $n — $car.")
@@ -138,6 +152,7 @@ class Bot(private val config: AppConfig, private val telegram: TelegramApi, priv
         val t = BotText(message.isRussian())
 
         if (text?.startsWith("/start") == true) return send(chatId, t.welcome, t)
+        if (message["audio"] != null || message["voice"] != null || isAudioDocument(message)) return onAudio(chatId, message, t)
 
         val fileId = photoFileId(message)
         if (fileId == null) {
@@ -206,6 +221,37 @@ class Bot(private val config: AppConfig, private val telegram: TelegramApi, priv
             }
         })
     }
+
+    /** Admins add background music by sending (or forwarding) a track to the bot. */
+    private suspend fun onAudio(chatId: Long, message: JsonObject, t: BotText) {
+        val from = message["from"]?.jsonObject ?: return
+        val tg = TelegramUser(
+            id = from["id"]!!.jsonPrimitive.content.toLong(),
+            firstName = from["first_name"]?.jsonPrimitive?.content ?: "",
+            username = from["username"]?.jsonPrimitive?.content,
+        )
+        if (tg.id !in config.adminTelegramIds && !AdminRepository.isAdmin(tg)) return send(chatId, t.musicAdminsOnly)
+
+        val audio = (message["audio"] ?: message["document"])?.jsonObject ?: return send(chatId, t.musicUnsupported)
+        val ext = MusicRepository.SUPPORTED[audio["mime_type"]?.jsonPrimitive?.content?.lowercase()]
+            ?: return send(chatId, t.musicUnsupported)
+        val size = audio["file_size"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0
+        if (size > MusicRepository.MAX_BYTES) return send(chatId, t.musicTooBig)
+
+        val bytes = telegram.downloadFile(audio["file_id"]!!.jsonPrimitive.content) ?: return send(chatId, t.musicTooBig)
+        val title = audio["title"]?.jsonPrimitive?.content
+            ?: audio["file_name"]?.jsonPrimitive?.content?.substringBeforeLast('.')
+        val performer = audio["performer"]?.jsonPrimitive?.content
+        val userId = UserRepository.upsertFromTelegram(tg)
+        val track = MusicRepository.add(
+            photos.dir, bytes, ext, title, performer,
+            audio["duration"]?.jsonPrimitive?.content?.toIntOrNull(), userId,
+        )
+        send(chatId, t.musicAdded(listOfNotNull(track.performer, track.title).joinToString(" — ").ifEmpty { "♪" }))
+    }
+
+    private fun isAudioDocument(message: JsonObject) =
+        message["document"]?.jsonObject?.get("mime_type")?.jsonPrimitive?.content?.startsWith("audio/") == true
 
     private suspend fun onCallback(query: JsonObject) {
         val queryId = query["id"]!!.jsonPrimitive.content

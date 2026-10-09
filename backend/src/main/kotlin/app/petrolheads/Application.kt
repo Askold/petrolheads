@@ -25,6 +25,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.partialcontent.PartialContent
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -47,6 +48,8 @@ fun Application.module(config: AppConfig, telegram: TelegramApi = TelegramApi(co
     val bot = Bot(config, telegram, photos)
 
     install(CallLogging)
+    // Range requests: iOS won't play <audio> without them.
+    install(PartialContent)
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true; explicitNulls = true; encodeDefaults = true })
     }

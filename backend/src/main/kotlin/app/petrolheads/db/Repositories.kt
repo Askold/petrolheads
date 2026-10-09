@@ -85,9 +85,10 @@ object UserRepository {
         val likedById = likedCars.associateBy { it.id }
         // Only people who've added at least one car (current or former) are listed.
         val owners = Cars.selectAll().map { it[Cars.userId].value }.toSet()
+        val bests = TierRepository.homeBests()
         users.filter { it.id in owners }.map { u ->
             val main = mainCars[u.id]?.let { likedById.getValue(it.id).copy(photos = photos[it.id].orEmpty()) }
-            DriverDto(u, main, carCounts[u.id] ?: 0, likesByUser[u.id] ?: 0)
+            DriverDto(u, main, carCounts[u.id] ?: 0, likesByUser[u.id] ?: 0, app.petrolheads.Tier.forLap(bests[u.id]).key)
         }
     }
 
@@ -189,6 +190,18 @@ object CarRepository {
         this[Cars.weightKg] = req.weightKg
         this[Cars.drivetrain] = req.drivetrain
         this[Cars.mods] = req.mods
+    }
+}
+
+object TierRepository {
+    /** Best verified lap per user on the home track (see [app.petrolheads.Tier.HOME_TRACK]). */
+    fun homeBests(): Map<Long, Int> {
+        val home = Tracks.selectAll().where { Tracks.name eq app.petrolheads.Tier.HOME_TRACK }.map { it[Tracks.id].value }
+        if (home.isEmpty()) return emptyMap()
+        return LapTimes.selectAll()
+            .where { (LapTimes.trackId inList home) and (LapTimes.status eq LapStatus.VERIFIED) }
+            .groupBy({ it[LapTimes.userId].value }, { it[LapTimes.timeMs] })
+            .mapValues { (_, times) -> times.min() }
     }
 }
 

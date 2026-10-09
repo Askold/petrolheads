@@ -98,10 +98,11 @@ data class ProfileDto(
     val personalBests: List<PersonalBestDto>,
     val isMe: Boolean,
     val isAdmin: Boolean,
+    val tier: TierDto = TierDto.of(null),
 )
 
 @Serializable
-data class DriverDto(val user: UserDto, val mainCar: CarDto?, val carCount: Int, val likes: Int = 0)
+data class DriverDto(val user: UserDto, val mainCar: CarDto?, val carCount: Int, val likes: Int = 0, val tier: String = "member")
 
 /** A car in the club-wide "Garages" grid, with its owner. */
 @Serializable
@@ -174,3 +175,6 @@ data class AdminDto(
 
 @Serializable
 data class AddAdminRequest(val username: String)
+
+@Serializable
+data class MusicTrackDto(val id: Long, val url: String, val title: String?, val performer: String?, val durationS: Int?)

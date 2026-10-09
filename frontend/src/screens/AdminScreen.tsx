@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePendingLaps, useReviewLap } from "../api/client";
 import { AdminsPanel } from "../components/AdminsPanel";
+import { MusicPanel } from "../components/MusicPanel";
 import { ErrorBox, Loader, Panel, PillButton, ScreenHeader, Switcher } from "../components/ui";
 import { carTitle, displayName, formatLap } from "../format";
 import { trackText, useI18n } from "../i18n";
@@ -9,18 +10,21 @@ export function AdminScreen() {
   const { t, lang } = useI18n();
   const pending = usePendingLaps(true);
   const review = useReviewLap();
-  const [section, setSection] = useState<"laps" | "admins">("laps");
-  const toggle = () => setSection((s) => (s === "laps" ? "admins" : "laps"));
+  const SECTIONS = ["laps", "admins", "music"] as const;
+  const [section, setSection] = useState<(typeof SECTIONS)[number]>("laps");
+  const step = (d: number) => setSection((s) => SECTIONS[(SECTIONS.indexOf(s) + d + SECTIONS.length) % SECTIONS.length]);
 
   return (
     <div className="space-y-2">
       <ScreenHeader title={t.raceControl}>
         <div className="mt-2 flex justify-center">
-          <Switcher label={<span className="inline-block w-44">{t.adminSections[section]}</span>} onPrev={toggle} onNext={toggle} />
+          <Switcher label={<span className="inline-block w-44">{t.adminSections[section]}</span>} onPrev={() => step(-1)} onNext={() => step(1)} />
         </div>
       </ScreenHeader>
       {section === "admins" ? (
         <AdminsPanel />
+      ) : section === "music" ? (
+        <MusicPanel />
       ) : (
         <>
       <p className="px-1 text-xs italic text-steel">{t.adminNote}</p>

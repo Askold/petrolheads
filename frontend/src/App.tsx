@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useMyProfile } from "./api/client";
 import type { Car } from "./api/types";
 import { BottomBar, type BarItem } from "./components/BottomBar";
+import { MusicPlayer } from "./components/MusicPlayer";
 import { GaragesScreen } from "./screens/GaragesScreen";
 import { LapFormScreen } from "./screens/LapFormScreen";
 import { AdminScreen } from "./screens/AdminScreen";
@@ -80,6 +81,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
+      <MusicPlayer />
       <BottomBar items={tabs} active={tab} onChange={setTab} onBack={top ? pop : undefined} />
     </div>
   );

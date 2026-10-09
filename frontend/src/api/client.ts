@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authToken } from "../telegram";
-import type { Admin, Car, CarInput, CatalogCar, Driver, FeedCar, Lap, LapInput, Leaderboard, Meta, PendingLap, Photo, Profile, ProfileInput, Track } from "./types";
+import type { Admin, MusicTrack, Car, CarInput, CatalogCar, Driver, FeedCar, Lap, LapInput, Leaderboard, Meta, PendingLap, Photo, Profile, ProfileInput, Track } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 
@@ -113,6 +113,12 @@ export const useDeleteCar = () =>
   useInvalidating((id: number) => send<void>("DELETE", `/api/cars/${id}`), [["profile"], ["leaderboard"]]);
 
 export const useSubmitLap = () => useInvalidating((v: LapInput) => send<Lap>("POST", "/api/laps", v), [["profile"], ["pending"]]);
+
+export const useMusic = () =>
+  useQuery({ queryKey: ["music"], queryFn: () => request<MusicTrack[]>("/api/music"), staleTime: 5 * 60_000 });
+
+export const useDeleteMusic = () =>
+  useInvalidating((id: number) => send<MusicTrack[]>("DELETE", `/api/admin/music/${id}`), [["music"]]);
 
 export const useAdmins = () => useQuery({ queryKey: ["admins"], queryFn: () => request<Admin[]>("/api/admin/admins") });
 

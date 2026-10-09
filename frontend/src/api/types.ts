@@ -101,17 +101,31 @@ export type Lap = {
 
 export type PersonalBest = { track: Track; lap: Lap; car: Car };
 
+export type TierKey = "member" | "petrolhead" | "racer" | "elite";
+
+/** Club status from the best verified lap on the home track (thresholds live on the backend). */
+export type TierInfo = {
+  tier: TierKey;
+  bestMs: number | null;
+  trackName: string;
+  nextTier: TierKey | null;
+  nextTierMaxMs: number | null;
+};
+
 export type Profile = {
   user: User;
   cars: Car[];
   personalBests: PersonalBest[];
   isMe: boolean;
   isAdmin: boolean;
+  tier: TierInfo;
 };
+
+export type MusicTrack = { id: number; url: string; title: string | null; performer: string | null; durationS: number | null };
 
 export type Admin = { id: number | null; username: string | null; user: User | null; fromConfig: boolean };
 
-export type Driver = { user: User; mainCar: Car | null; carCount: number; likes: number };
+export type Driver = { user: User; mainCar: Car | null; carCount: number; likes: number; tier: TierKey };
 
 export type LeaderboardEntry = { position: number; user: User; car: Car; lap: Lap };
 export type Leaderboard = { track: Track; entries: LeaderboardEntry[] };

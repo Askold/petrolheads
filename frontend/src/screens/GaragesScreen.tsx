@@ -5,6 +5,7 @@ import type { Car, Driver, FeedCar } from "../api/types";
 import { CarDetailsSheet } from "../components/CarDetailsSheet";
 import { type CarFilter, MakeModelFilter, matchesFilter, NO_FILTER } from "../components/MakeModelFilter";
 import { Silhouette } from "../components/GarageStage";
+import { TierBadge } from "../components/TierBadge";
 import { ErrorBox, Loader, ScreenHeader, Switcher } from "../components/ui";
 import { carTitle, coverPhoto, displayName } from "../format";
 import { useI18n } from "../i18n";
@@ -178,6 +179,9 @@ export function GaragesScreen({
                 <div className="label-white truncate text-xl normal-case leading-tight">
                   {displayName(d.user)}
                   {d.user.crew && <span className="ml-1.5 text-sm text-steel">[{d.user.crew}]</span>}
+                </div>
+                <div className="mt-0.5">
+                  <TierBadge tier={d.tier} size="sm" />
                 </div>
                 <div className="truncate text-xs text-steel">
                   {d.mainCar ? carTitle(d.mainCar) : t.noCarYet}

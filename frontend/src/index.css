@@ -41,6 +41,50 @@ body,
   background: linear-gradient(180deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.35));
 }
 
+/* Membership stickers: matte, holographic, gold, red chrome. */
+@keyframes holo-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  padding: 0.2rem 0.75rem;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
+}
+.sticker-member {
+  background: linear-gradient(90deg, #f1f1f1 0 50%, #1b1b1d 50% 100%);
+  color: #6b6b72;
+  border: 1px solid rgb(255 255 255 / 0.35);
+}
+.sticker-petrolhead {
+  color: #1d1630;
+  background: linear-gradient(110deg, #ffd1f0, #c8b5ff, #a8f0ff, #c9ffd1, #fff1a8, #ffd1f0, #c8b5ff);
+  background-size: 200% 100%;
+  animation: holo-shift 4s linear infinite;
+  border: 1px solid rgb(255 255 255 / 0.7);
+}
+.sticker-racer {
+  color: #3a2600;
+  background: linear-gradient(180deg, #fff3c0 0%, #f2c94c 35%, #b8860b 55%, #f7d873 80%, #fff0b3 100%);
+  border: 1px solid #fff2b8;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+}
+.sticker-elite {
+  color: #fff;
+  background: linear-gradient(180deg, #ffb3b3 0%, #e0212f 30%, #6e0710 55%, #d81b2a 78%, #ff9a9a 100%);
+  border: 1px solid #ffc7c7;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.6);
+}
+
 /* In the components layer so Tailwind utilities (normal-case, text colours) can override them. */
 @layer components {
 .title-lime {

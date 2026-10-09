@@ -69,6 +69,14 @@ object Admins : LongIdTable("admins") {
     val addedBy = reference("added_by", Users, onDelete = ReferenceOption.SET_NULL).nullable()
 }
 
+object Music : LongIdTable("music") {
+    val title = varchar("title", 200).nullable()
+    val performer = varchar("performer", 200).nullable()
+    val fileName = varchar("file_name", 64)
+    val durationS = integer("duration_s").nullable()
+    val addedBy = reference("added_by", Users, onDelete = ReferenceOption.SET_NULL).nullable()
+}
+
 object Tracks : LongIdTable("tracks") {
     val name = varchar("name", 128)
     val layout = varchar("layout", 64).nullable()

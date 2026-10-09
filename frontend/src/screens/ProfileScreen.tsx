@@ -4,6 +4,7 @@ import { useMyProfile, useProfile, useUpdateProfile } from "../api/client";
 import type { Car, Profile } from "../api/types";
 import { CarDetailsSheet } from "../components/CarDetailsSheet";
 import { GarageStage } from "../components/GarageStage";
+import { TierBadge, TierCard } from "../components/TierBadge";
 import {
   CircleArrow,
   Dots,
@@ -152,7 +153,10 @@ function ProfileView({
         <div className="flex min-w-0 flex-1 items-center gap-3 border-r border-white/15 px-3 py-2.5">
           {user.photoUrl && <img src={user.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-md object-cover" />}
           <div className="min-w-0">
-            <div className="label-white truncate text-2xl normal-case leading-none">{displayName(user)}</div>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="label-white truncate text-2xl normal-case leading-none">{displayName(user)}</span>
+              <TierBadge tier={profile.tier.tier} size="sm" />
+            </div>
             <div className="truncate text-sm italic text-steel">
               {user.crew ? `${user.crew} · ` : ""}
               <span className="text-lime">
@@ -168,6 +172,8 @@ function ProfileView({
           </div>
         )}
       </div>
+
+      <TierCard info={profile.tier} />
 
       {editing ? (
         <EditProfile profile={profile} onDone={() => setEditing(false)} />

@@ -20,6 +20,7 @@ import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
 import app.petrolheads.ProfileDto
 import app.petrolheads.ReviewLapRequest
+import app.petrolheads.TierDto
 import app.petrolheads.TrackRequest
 import app.petrolheads.UploadedDto
 import app.petrolheads.UpdateProfileRequest
@@ -29,6 +30,8 @@ import app.petrolheads.db.LapRepository
 import app.petrolheads.db.LapStatus
 import app.petrolheads.db.AdminRepository
 import app.petrolheads.db.CarScores
+import app.petrolheads.db.MusicRepository
+import app.petrolheads.db.TierRepository
 import app.petrolheads.db.LikeRepository
 import app.petrolheads.db.TrackRepository
 import app.petrolheads.db.UserRepository
@@ -52,6 +55,8 @@ private val CONDITIONS = setOf("dry", "damp", "wet")
 
 fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramIds: Set<Long>) = route("/api") {
     get("/meta") { call.respond(MetaDto(botUsername = telegram.botUsername())) }
+
+    get("/music") { call.respond(MusicRepository.list()) }
 
     get("/catalog/all") { call.respond(CarCatalog.all()) }
 
@@ -196,6 +201,11 @@ fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramId
     }
 
     route("/admin") {
+        delete("/music/{id}") {
+            if (!call.user.isAdmin) forbidden()
+            MusicRepository.delete(photos.dir, call.longParam("id"))
+            call.respond(MusicRepository.list())
+        }
         route("/admins") {
             get {
                 if (!call.user.isAdmin) forbidden()
@@ -250,7 +260,8 @@ private suspend fun buildProfile(userId: Long, call: ApplicationCall): ProfileDt
     val bests = laps.mapNotNull { lap ->
         PersonalBestDto(tracks[lap.trackId] ?: return@mapNotNull null, lap, carsById[lap.carId] ?: return@mapNotNull null)
     }
-    return ProfileDto(user, cars, bests, isMe = isMe, isAdmin = isMe && call.user.isAdmin)
+    val tier = TierDto.of(dbQuery { TierRepository.homeBests()[userId] })
+    return ProfileDto(user, cars, bests, isMe = isMe, isAdmin = isMe && call.user.isAdmin, tier = tier)
 }
 
 private fun CarRequest.validated(): CarRequest {
