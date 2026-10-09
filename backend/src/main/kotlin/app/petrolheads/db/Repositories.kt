@@ -169,7 +169,7 @@ object CarRepository {
         val deleted = Cars.deleteWhere { (Cars.id eq carId) and (Cars.userId eq userId) } > 0
         if (deleted) promoteMain(userId)
         deleted
-    }
+    }.also { deleted -> if (deleted) Reputation.recomputeAll() }
 
     fun findMany(ids: Collection<Long>): Map<Long, CarDto> =
         Cars.selectAll().where { Cars.id inList ids }.associate { it[Cars.id].value to it.toCarDto() }
@@ -219,7 +219,7 @@ object LikeRepository {
         }
         val n = CarLikes.selectAll().where { CarLikes.carId eq carId }.count().toInt()
         LikeDto(n, liked)
-    }
+    }.also { Reputation.recomputeAll() }
 
     /** Every car still in a garage, with owner, photos and likes, for the club-wide grid. */
     suspend fun feed(viewerId: Long): List<FeedCarDto> = dbQuery {
@@ -307,6 +307,7 @@ object LapRepository {
     }
 
     /** Sets the review status and awards rep the first time a lap gets verified. */
+    /** Sets the review status; reputation is recomputed since leaderboards may have changed. */
     suspend fun review(lapId: Long, status: String, reviewerId: Long): LapDto? = dbQuery {
         val lap = LapTimes.selectAll().where { LapTimes.id eq lapId }.singleOrNull()?.toLapDto()
             ?: return@dbQuery null
@@ -314,15 +315,8 @@ object LapRepository {
             it[LapTimes.status] = status
             it[verifiedBy] = reviewerId
         }
-        if (status == LapStatus.VERIFIED && lap.status != LapStatus.VERIFIED) {
-            Users.update({ Users.id eq lap.userId }) {
-                it[rep] = rep + REP_PER_VERIFIED_LAP
-            }
-        }
         lap.copy(status = status)
-    }
-
-    const val REP_PER_VERIFIED_LAP = 100
+    }.also { if (it != null) Reputation.recomputeAll() }
 }
 
 fun ResultRow.toUserDto() = UserDto(

@@ -1,4 +1,4 @@
-import type { TierInfo, TierKey } from "../api/types";
+import type { RepBreakdown, TierInfo, TierKey } from "../api/types";
 import { useI18n } from "../i18n";
 
 /** Seconds with milliseconds, e.g. 46123 → "46.123". */
@@ -15,7 +15,7 @@ export function TierBadge({ tier, size = "md" }: { tier: TierKey; size?: "sm" | 
 }
 
 /** Profile block: status sticker, what sticker it earns, best home-track lap and the gap to the next tier. */
-export function TierCard({ info }: { info: TierInfo }) {
+export function TierCard({ info, rep }: { info: TierInfo; rep: RepBreakdown | null }) {
   const { t } = useI18n();
   const gap = info.bestMs != null && info.nextTierMaxMs != null ? info.bestMs - info.nextTierMaxMs : null;
 
@@ -37,6 +37,16 @@ export function TierCard({ info }: { info: TierInfo }) {
         </div>
       ) : (
         <div className="text-xs text-lime">{t.tierTop}</div>
+      )}
+      {rep && (
+        <div className="mt-1.5 border-t border-white/10 pt-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="title-lime text-lg">{t.repTitle}</span>
+            <span className="label-white text-xl">{rep.total}</span>
+          </div>
+          <div className="text-xs text-white/80">{t.repBreakdown(rep.lapPoints, rep.likePoints, rep.likes, rep.tierBonus)}</div>
+          <div className="text-[11px] italic text-steel">{t.repHow}</div>
+        </div>
       )}
     </div>
   );

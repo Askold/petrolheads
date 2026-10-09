@@ -99,7 +99,12 @@ data class ProfileDto(
     val isMe: Boolean,
     val isAdmin: Boolean,
     val tier: TierDto = TierDto.of(null),
+    val rep: RepBreakdownDto? = null,
 )
+
+/** How a driver's reputation adds up (see db/Reputation). */
+@Serializable
+data class RepBreakdownDto(val lapPoints: Int, val likes: Int, val likePoints: Int, val tierBonus: Int, val total: Int)
 
 @Serializable
 data class DriverDto(val user: UserDto, val mainCar: CarDto?, val carCount: Int, val likes: Int = 0, val tier: String = "member")

@@ -45,6 +45,8 @@ fun Application.module(config: AppConfig, telegram: TelegramApi = TelegramApi(co
     DatabaseFactory.init(config.db)
     val photos = PhotoService(config.uploadDir, config)
     photos.cutouts.start(this)
+    // Reputation is derived data: refresh the cache on startup (also migrates the old +100-per-lap values).
+    launch { app.petrolheads.db.Reputation.recomputeAll() }
     val bot = Bot(config, telegram, photos)
 
     install(CallLogging)

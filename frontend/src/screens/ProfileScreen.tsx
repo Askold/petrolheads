@@ -173,7 +173,7 @@ function ProfileView({
         )}
       </div>
 
-      <TierCard info={profile.tier} />
+      <TierCard info={profile.tier} rep={profile.rep} />
 
       {editing ? (
         <EditProfile profile={profile} onDone={() => setEditing(false)} />

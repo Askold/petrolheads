@@ -119,7 +119,11 @@ export type Profile = {
   isMe: boolean;
   isAdmin: boolean;
   tier: TierInfo;
+  rep: RepBreakdown | null;
 };
+
+/** How a driver's reputation adds up; recomputed on the server from places, likes and tier. */
+export type RepBreakdown = { lapPoints: number; likes: number; likePoints: number; tierBonus: number; total: number };
 
 export type MusicTrack = { id: number; url: string; title: string | null; performer: string | null; durationS: number | null };
 

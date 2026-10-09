@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useMusic } from "../api/client";
 import type { MusicTrack } from "../api/types";
+import { queueReducer } from "../musicQueue";
 import { useI18n } from "../i18n";
 import { haptic } from "../telegram";
 
@@ -18,40 +19,44 @@ function readPref(): boolean {
   }
 }
 
-function shuffled<T>(items: T[]): T[] {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 /**
- * Background music: shuffled playlist, low volume, ♪ toggle in the corner.
+ * Background music: the playlist loops forever, reshuffled every round; low volume, ♪ toggle in the corner.
  * Browsers only allow sound after a user gesture, so playback starts on the first tap.
  * Pauses while the Mini App is hidden.
  */
 export function MusicPlayer() {
   const { t } = useI18n();
   const music = useMusic();
-  const playlist = useMemo(() => shuffled(music.data ?? []), [music.data]);
+  const [{ queue, pos, plays }, dispatch] = useReducer(queueReducer, { queue: [], pos: 0, plays: 0 });
   const [on, setOn] = useState(readPref);
   const [unlocked, setUnlocked] = useState(false);
   const [visible, setVisible] = useState(() => document.visibilityState === "visible");
-  const [index, setIndex] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
+  /** Consecutive load errors; once every track has failed, stop instead of spinning through them. */
+  const failures = useRef(0);
+  const queueLength = useRef(0);
+  queueLength.current = queue.length;
 
-  const track = playlist.length ? playlist[index % playlist.length] : null;
+  const track = queue[pos] ?? null;
+
+  useEffect(() => {
+    if (music.data) dispatch({ type: "load", tracks: music.data });
+  }, [music.data]);
 
   useEffect(() => {
     const a = new Audio();
     a.volume = VOLUME;
     a.preload = "auto";
-    a.onended = () => setIndex((i) => i + 1);
-    // A broken file shouldn't stop the music: skip to the next one.
-    a.onerror = () => setIndex((i) => i + 1);
+    a.onended = () => dispatch({ type: "next" });
+    a.onplaying = () => {
+      failures.current = 0;
+    };
+    // A broken file shouldn't stop the music: skip it, unless nothing in the playlist plays.
+    a.onerror = () => {
+      failures.current += 1;
+      if (failures.current < queueLength.current) dispatch({ type: "next" });
+    };
     audio.current = a;
     const unlock = () => setUnlocked(true);
     const onVisibility = () => setVisible(document.visibilityState === "visible");
@@ -64,15 +69,15 @@ export function MusicPlayer() {
     };
   }, []);
 
-  // Load the current track and announce it.
+  // Load the current track (or rewind it, when the same file comes round again) and announce it.
   useEffect(() => {
     const a = audio.current;
     if (!a || !track) return;
-    if (!a.src.endsWith(track.url)) {
-      a.src = track.url;
-      if (on && unlocked) setToast(trackName(track));
-    }
-  }, [track, on, unlocked]);
+    if (a.src.endsWith(track.url)) a.currentTime = 0;
+    else a.src = track.url;
+    if (on && unlocked) setToast(trackName(track));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on track changes, not on toggle
+  }, [track?.id, plays]);
 
   // Play or pause to match the toggle, the first-tap unlock and app visibility.
   useEffect(() => {
@@ -80,7 +85,7 @@ export function MusicPlayer() {
     if (!a || !track) return;
     if (on && unlocked && visible) a.play().catch(() => {});
     else a.pause();
-  }, [on, unlocked, visible, track]);
+  }, [on, unlocked, visible, track, plays]);
 
   useEffect(() => {
     if (!toast) return;
@@ -88,7 +93,7 @@ export function MusicPlayer() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  if (!playlist.length) return null;
+  if (!queue.length) return null;
 
   const toggle = () => {
     haptic.select();

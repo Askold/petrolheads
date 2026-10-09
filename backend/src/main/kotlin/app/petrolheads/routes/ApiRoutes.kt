@@ -31,6 +31,7 @@ import app.petrolheads.db.LapStatus
 import app.petrolheads.db.AdminRepository
 import app.petrolheads.db.CarScores
 import app.petrolheads.db.MusicRepository
+import app.petrolheads.db.Reputation
 import app.petrolheads.db.TierRepository
 import app.petrolheads.db.LikeRepository
 import app.petrolheads.db.TrackRepository
@@ -261,7 +262,8 @@ private suspend fun buildProfile(userId: Long, call: ApplicationCall): ProfileDt
         PersonalBestDto(tracks[lap.trackId] ?: return@mapNotNull null, lap, carsById[lap.carId] ?: return@mapNotNull null)
     }
     val tier = TierDto.of(dbQuery { TierRepository.homeBests()[userId] })
-    return ProfileDto(user, cars, bests, isMe = isMe, isAdmin = isMe && call.user.isAdmin, tier = tier)
+    val rep = dbQuery { Reputation.computeAll()[userId] }
+    return ProfileDto(user, cars, bests, isMe = isMe, isAdmin = isMe && call.user.isAdmin, tier = tier, rep = rep)
 }
 
 private fun CarRequest.validated(): CarRequest {
