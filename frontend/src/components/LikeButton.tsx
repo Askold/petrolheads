@@ -1,4 +1,4 @@
-import { useLike } from "../api/client";
+import { useCanEdit, useLike } from "../api/client";
 import type { Car } from "../api/types";
 import { useI18n } from "../i18n";
 import { haptic } from "../telegram";
@@ -7,6 +7,9 @@ import { haptic } from "../telegram";
 export function LikeButton({ car, own, className = "" }: { car: Car; own: boolean; className?: string }) {
   const { t } = useI18n();
   const like = useLike();
+  // Read-only count on your own car and for people outside the club group.
+  const canEdit = useCanEdit();
+  const readOnly = own || !canEdit;
   // Optimistic: flip immediately, the refetch brings the real count.
   const pending = like.isPending ? like.variables : null;
   const liked = pending && pending.carId === car.id ? pending.liked : car.likedByMe;
@@ -14,7 +17,7 @@ export function LikeButton({ car, own, className = "" }: { car: Car; own: boolea
 
   return (
     <button
-      disabled={own || like.isPending}
+      disabled={readOnly || like.isPending}
       aria-label={own ? t.ownCar : t.likeHint}
       aria-pressed={liked}
       // Keep the press from reaching the turntable's tap/swipe handlers.

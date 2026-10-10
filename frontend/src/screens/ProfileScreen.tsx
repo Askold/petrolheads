@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { useMyProfile, useProfile, useUpdateProfile } from "../api/client";
+import { useCanEdit, useMyProfile, useProfile, useUpdateProfile } from "../api/client";
+import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import type { Car, Profile } from "../api/types";
 import { CarDetailsSheet } from "../components/CarDetailsSheet";
 import { brandLogo } from "../brandLogos";
@@ -121,6 +122,9 @@ function ProfileView({
   });
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  // Your own garage is editable only while you're in the club group (the server enforces it too).
+  const canEdit = useCanEdit();
+  const mine = isMe && canEdit;
   const car: Car | undefined = list[Math.min(index, list.length - 1)];
   const step = (d: number) => list.length > 1 && setIndex((i) => (i + d + list.length) % list.length);
   const toggleView = () => {
@@ -170,9 +174,11 @@ function ProfileView({
           <span className="title-lime text-2xl">
             {view === "former" ? t.emptyFormer : isMe ? t.emptyGarageMine : t.noCars}
           </span>
-          {isMe && view === "current" && <PillButton onClick={() => onEditCar(null)}>{t.addCar}</PillButton>}
+          {mine && view === "current" && <PillButton onClick={() => onEditCar(null)}>{t.addCar}</PillButton>}
         </div>
       )}
+
+      {isMe && <ReadOnlyBanner />}
 
       {/* Driver bar, like the player name box at the bottom-left of the menus */}
       <div className="strip flex items-stretch">
@@ -188,7 +194,7 @@ function ProfileView({
             </div>
           </div>
         </div>
-        {isMe && (
+        {mine && (
           <div className="flex flex-col justify-center gap-2 px-3 py-2.5">
             {car && <PillButton className="py-1 text-base" onClick={() => onEditCar(car)}>{t.editCar}</PillButton>}
             <PillButton className="py-1 text-base" onClick={() => onEditCar(null)}>{t.addCar}</PillButton>
@@ -201,9 +207,9 @@ function ProfileView({
       {editing ? (
         <EditProfile profile={profile} onDone={() => setEditing(false)} />
       ) : (
-        (user.bio || isMe) && (
+        (user.bio || mine) && (
           <button
-            disabled={!isMe}
+            disabled={!mine}
             onClick={() => (haptic.select(), setEditing(true))}
             className="strip block w-full px-3 py-2 text-left text-sm italic text-white/80"
           >

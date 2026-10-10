@@ -25,6 +25,7 @@ type WebApp = {
   disableVerticalSwipes?(): void;
   HapticFeedback: Haptic;
   BackButton: BackButton;
+  openTelegramLink?(url: string): void;
 };
 
 declare global {
@@ -55,11 +56,24 @@ export function initTelegram() {
  */
 export function authToken(): string | null {
   if (insideTelegram) return webApp!.initData;
-  return import.meta.env.DEV || import.meta.env.VITE_DEV_AUTH === "true" ? "dev" : null;
+  if (!(import.meta.env.DEV || import.meta.env.VITE_DEV_AUTH === "true")) return null;
+  // Preview only: localStorage devAs=guest signs in as a non-admin to see the read-only app.
+  try {
+    if (localStorage.getItem("devAs") === "guest") return "dev-guest";
+  } catch {
+    // storage unavailable
+  }
+  return "dev";
 }
 
 /** The Telegram user's app language, e.g. "ru" or "en". */
 export const telegramLanguage = (): string | undefined => webApp?.initDataUnsafe?.user?.language_code;
+
+/** Opens a t.me link inside Telegram (keeps the Mini App open); a normal link elsewhere. */
+export function openTelegramLink(url: string) {
+  if (insideTelegram && webApp!.isVersionAtLeast("6.1") && webApp!.openTelegramLink) webApp!.openTelegramLink(url);
+  else window.open(url, "_blank", "noopener");
+}
 
 const canHaptic = () => insideTelegram && webApp!.isVersionAtLeast("6.1");
 

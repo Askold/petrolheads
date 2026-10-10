@@ -62,7 +62,11 @@ export const useLike = () =>
 export const useDrivers = () => useQuery({ queryKey: ["drivers"], queryFn: () => request<Driver[]>("/api/users") });
 
 export const useMeta = () =>
-  useQuery({ queryKey: ["meta"], queryFn: () => request<Meta>("/api/meta"), staleTime: Infinity });
+  // Short-lived: someone who just joined the group should get edit rights without reopening the app.
+  useQuery({ queryKey: ["meta"], queryFn: () => request<Meta>("/api/meta"), staleTime: 60_000 });
+
+/** Whether the viewer can add and change things (group member or admin). False until known. */
+export const useCanEdit = () => useMeta().data?.isMember ?? false;
 
 export const useCatalog = () =>
   useQuery({ queryKey: ["catalog", "all"], queryFn: () => request<CatalogCar[]>("/api/catalog/all"), staleTime: Infinity });

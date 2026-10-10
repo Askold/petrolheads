@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { useLeaderboard, useMyProfile, useTracksWithResults } from "../api/client";
+import { useCanEdit, useLeaderboard, useMyProfile, useTracksWithResults } from "../api/client";
+import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { type CarFilter, MakeModelFilter, matchesFilter, NO_FILTER } from "../components/MakeModelFilter";
 import { CircleArrow, EmptyEmblem, ErrorBox, Loader, PillButton, ScreenHeader } from "../components/ui";
 import { carTitle, displayName, formatLap } from "../format";
@@ -16,6 +17,7 @@ export function LeaderboardScreen({
 }) {
   const { t, lang } = useI18n();
   const tracks = useTracksWithResults();
+  const canEdit = useCanEdit();
   const me = useMyProfile();
   const [index, setIndex] = useState(0);
   const [filter, setFilter] = useState<CarFilter>(NO_FILTER);
@@ -34,9 +36,13 @@ export function LeaderboardScreen({
           <div className="title-lime text-2xl">{t.noResultsAnywhere}</div>
           <div className="mt-1 text-sm italic text-steel">{t.beFirst}</div>
         </div>
-        <PillButton className="w-full" onClick={() => onAddLap()}>
-          + {t.addResult}
-        </PillButton>
+        {canEdit ? (
+          <PillButton className="w-full" onClick={() => onAddLap()}>
+            + {t.addResult}
+          </PillButton>
+        ) : (
+          <ReadOnlyBanner />
+        )}
       </div>
     );
   }
@@ -79,11 +85,12 @@ export function LeaderboardScreen({
         )}
       </ScreenHeader>
 
-      {track && (
+      {track && canEdit && (
         <PillButton className="w-full" onClick={() => onAddLap(track.id)}>
           + {t.addResult}
         </PillButton>
       )}
+      {!canEdit && <ReadOnlyBanner />}
 
       {board.isPending ? (
         <Loader label={t.timing} />

@@ -12,7 +12,11 @@ import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 
-data class UserPrincipal(val userId: Long, val telegramId: Long, val isAdmin: Boolean)
+/**
+ * [isMember]: in the club's Telegram group (or no group is configured). Non-members can browse
+ * but not change anything; admins can do everything.
+ */
+data class UserPrincipal(val userId: Long, val telegramId: Long, val isAdmin: Boolean, val isMember: Boolean)
 
 @Serializable
 data class ErrorResponse(val error: String)
@@ -20,6 +24,8 @@ data class ErrorResponse(val error: String)
 const val TMA_AUTH = "tma"
 
 private val devUser = TelegramUser(id = 1, firstName = "Dev", username = "dev_racer")
+/** DEV_AUTH only: a plain non-admin user, for checking what people outside the group see. */
+private val devGuest = TelegramUser(id = 2, firstName = "Guest", username = "dev_guest")
 
 /**
  * Authenticates requests carrying `Authorization: tma <initData>`, checks group membership
@@ -34,6 +40,7 @@ fun AuthenticationConfig.telegramMiniApp(config: AppConfig, telegram: TelegramAp
             val tgUser = when {
                 raw == null -> null
                 config.devAuth && raw == "dev" -> devUser
+                config.devAuth && raw == "dev-guest" -> devGuest
                 else -> InitDataValidator.validate(raw, config.botToken)
             }
 
@@ -46,22 +53,11 @@ fun AuthenticationConfig.telegramMiniApp(config: AppConfig, telegram: TelegramAp
             }
 
             val isDev = config.devAuth && tgUser === devUser
-            if (!isDev && config.groupChatId != null && !telegram.isMember(config.groupChatId, tgUser.id)) {
-                context.challenge(TMA_AUTH, AuthenticationFailedCause.Error("not a member")) { challenge, call ->
-                    call.respond(HttpStatusCode.Forbidden, ErrorResponse("Only members of the group can use this app"))
-                    challenge.complete()
-                }
-                return@authenticate
-            }
-
             val userId = UserRepository.upsertFromTelegram(tgUser)
-            context.principal(
-                UserPrincipal(
-                    userId = userId,
-                    telegramId = tgUser.id,
-                    isAdmin = isDev || tgUser.id in config.adminTelegramIds || AdminRepository.isAdmin(tgUser),
-                )
-            )
+            val isAdmin = isDev || tgUser.id in config.adminTelegramIds || AdminRepository.isAdmin(tgUser)
+            // Everyone in Telegram can look around; only group members (and admins) can change things.
+            val isMember = isAdmin || telegram.isMemberOfAny(config.groupChatIds, tgUser.id)
+            context.principal(UserPrincipal(userId, tgUser.id, isAdmin, isMember))
         }
     }
 }

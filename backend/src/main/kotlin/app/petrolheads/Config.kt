@@ -5,8 +5,13 @@ data class DbConfig(val url: String, val user: String, val password: String)
 data class AppConfig(
     val port: Int,
     val botToken: String,
-    /** Telegram chat id of the car group; when set, only its members can use the app. */
-    val groupChatId: Long?,
+    /**
+     * Club group chat ids (e.g. the main group and a small test group). Members of any of them can
+     * add and change things; everyone else can only browse. Empty: everyone has full access.
+     */
+    val groupChatIds: List<Long>,
+    /** Shown to non-members so they can join the group. */
+    val groupInviteUrl: String?,
     val adminTelegramIds: Set<Long>,
     /** Public HTTPS origin of the app, e.g. https://petrolheads.example.com */
     val publicUrl: String?,
@@ -30,7 +35,12 @@ data class AppConfig(
             return AppConfig(
                 port = opt("PORT")?.toInt() ?: 8080,
                 botToken = if (devAuth) opt("BOT_TOKEN") ?: "dev" else req("BOT_TOKEN"),
-                groupChatId = opt("GROUP_CHAT_ID")?.toLong(),
+                // GROUP_CHAT_IDS="-100main,-100test"; the older single GROUP_CHAT_ID still works.
+                groupChatIds = listOfNotNull(opt("GROUP_CHAT_IDS"), opt("GROUP_CHAT_ID"))
+                    .flatMap { it.split(",") }
+                    .mapNotNull { it.trim().toLongOrNull() }
+                    .distinct(),
+                groupInviteUrl = opt("GROUP_INVITE_URL"),
                 adminTelegramIds = opt("ADMIN_TELEGRAM_IDS")
                     ?.split(",")?.mapNotNull { it.trim().toLongOrNull() }?.toSet()
                     ?: emptySet(),

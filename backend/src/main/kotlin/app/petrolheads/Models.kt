@@ -60,7 +60,13 @@ data class PhotoDto(
 )
 
 @Serializable
-data class MetaDto(val botUsername: String?)
+data class MetaDto(
+    val botUsername: String?,
+    /** The viewer may add and change things (group member or admin); otherwise the app is read-only. */
+    val isMember: Boolean = true,
+    /** Invite link to the club group, shown to non-members (GROUP_INVITE_URL). */
+    val groupInviteUrl: String? = null,
+)
 
 @Serializable
 data class TrackDto(

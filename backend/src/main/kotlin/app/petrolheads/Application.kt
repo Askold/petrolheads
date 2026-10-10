@@ -89,7 +89,7 @@ fun Application.module(config: AppConfig, telegram: TelegramApi = TelegramApi(co
             cacheControl { listOf(io.ktor.http.CacheControl.MaxAge(maxAgeSeconds = 31_536_000)) }
         }
         botWebhook(config, bot)
-        authenticate(TMA_AUTH) { apiRoutes(photos, telegram, config.adminTelegramIds) }
+        authenticate(TMA_AUTH) { apiRoutes(photos, telegram, config.adminTelegramIds, config.groupInviteUrl) }
     }
 
     if (!config.devAuth) launch { registerWebhook(config, telegram) }

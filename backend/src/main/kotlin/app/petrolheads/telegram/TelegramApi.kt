@@ -78,8 +78,19 @@ class TelegramApi(private val botToken: String) {
             }
         } ?: false
 
-        membershipCache[key] = CachedMembership(member, Instant.now().plus(Duration.ofMinutes(10)))
+        // Short negative cache, so someone who just joined the group isn't locked out for long.
+        val ttl = if (member) Duration.ofMinutes(10) else Duration.ofMinutes(1)
+        membershipCache[key] = CachedMembership(member, Instant.now().plus(ttl))
         return member
+    }
+
+    /** Member of at least one of [chatIds]; true when no groups are configured. */
+    suspend fun isMemberOfAny(chatIds: List<Long>, userId: Long): Boolean =
+        chatIds.isEmpty() || chatIds.any { isMember(it, userId) }
+
+    /** Drops the cached answer, e.g. when the bot sees the user join the group. */
+    fun forgetMembership(chatId: Long, userId: Long) {
+        membershipCache.remove(chatId to userId)
     }
 
     private fun json(value: Long) = kotlinx.serialization.json.JsonPrimitive(value)

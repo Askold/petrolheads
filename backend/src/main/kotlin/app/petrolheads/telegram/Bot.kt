@@ -191,6 +191,8 @@ class Bot(private val config: AppConfig, private val telegram: TelegramApi, priv
             val members = joined.map { it.jsonObject }
             val botAdded = members.any { it["username"]?.jsonPrimitive?.content.equals(botName, ignoreCase = true) }
             val people = members.filter { it["is_bot"]?.jsonPrimitive?.content != "true" }
+            // Newcomers get member rights in the app right away instead of after the cache expires.
+            people.forEach { p -> p["id"]?.jsonPrimitive?.content?.toLongOrNull()?.let { telegram.forgetMembership(chatId, it) } }
             if (botAdded) sendWithAppLink(chatId, GROUP_INTRO, "🏁 Открыть гараж", botName)
             if (people.isNotEmpty()) sendWithAppLink(chatId, GROUP_WELCOME, "🏁 Заполнить профиль", botName)
             return
@@ -331,7 +333,7 @@ class Bot(private val config: AppConfig, private val telegram: TelegramApi, priv
     }
 
     private suspend fun isAllowed(telegramId: Long) =
-        config.groupChatId == null || telegram.isMember(config.groupChatId, telegramId)
+        telegram.isMemberOfAny(config.groupChatIds, telegramId)
 
     /** Largest size of a compressed photo, or an image sent "as file" (keeps full quality). */
     private fun photoFileId(message: JsonObject): String? {

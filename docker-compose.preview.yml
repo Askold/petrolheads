@@ -22,6 +22,9 @@ services:
     environment:
       DEV_AUTH: "true"
       BOT_TOKEN: dev
+      # A group nobody is in: the dev admin keeps full access, the dev guest is read-only.
+      GROUP_CHAT_IDS: "-1000000000001,-1000000000002"
+      GROUP_INVITE_URL: https://t.me/+example
       DATABASE_URL: jdbc:postgresql://db:5432/petrolheads
       DATABASE_USER: petrolheads
       DATABASE_PASSWORD: preview

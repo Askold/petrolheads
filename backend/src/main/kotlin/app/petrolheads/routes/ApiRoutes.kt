@@ -54,8 +54,8 @@ import java.time.format.DateTimeParseException
 private val DRIVETRAINS = setOf("FWD", "RWD", "AWD")
 private val CONDITIONS = setOf("dry", "damp", "wet")
 
-fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramIds: Set<Long>) = route("/api") {
-    get("/meta") { call.respond(MetaDto(botUsername = telegram.botUsername())) }
+fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramIds: Set<Long>, groupInviteUrl: String?) = route("/api") {
+    get("/meta") { call.respond(MetaDto(telegram.botUsername(), call.user.isMember, groupInviteUrl)) }
 
     get("/music") { call.respond(MusicRepository.list()) }
 
@@ -69,6 +69,7 @@ fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramId
     get("/me") { call.respond(buildProfile(call.user.userId, call)) }
 
     patch("/me") {
+        call.requireMember()
         val req = call.receive<UpdateProfileRequest>()
         UserRepository.updateProfile(
             call.user.userId,
@@ -85,6 +86,7 @@ fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramId
 
     // multipart/form-data with one "file" image part; returns the URL to use as a lap's proofUrl
     post("/proofs") {
+        call.requireMember()
         var url: String? = null
         call.receiveMultipart(formFieldLimit = PhotoService.MAX_UPLOAD_BYTES.toLong()).forEachPart { part ->
             try {
@@ -103,23 +105,27 @@ fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramId
 
     route("/cars") {
         get("/feed") { call.respond(LikeRepository.feed(call.user.userId)) }
-        post("/{id}/like") { call.respond(LikeRepository.setLike(call.longParam("id"), call.user.userId, liked = true)) }
-        delete("/{id}/like") { call.respond(LikeRepository.setLike(call.longParam("id"), call.user.userId, liked = false)) }
+        post("/{id}/like") { call.requireMember(); call.respond(LikeRepository.setLike(call.longParam("id"), call.user.userId, liked = true)) }
+        delete("/{id}/like") { call.requireMember(); call.respond(LikeRepository.setLike(call.longParam("id"), call.user.userId, liked = false)) }
         post {
+            call.requireMember()
             val car = CarRepository.create(call.user.userId, call.receive<CarRequest>().validated())
             call.respond(HttpStatusCode.Created, car)
         }
         put("/{id}") {
+            call.requireMember()
             val car = CarRepository.update(call.user.userId, call.longParam("id"), call.receive<CarRequest>().validated())
                 ?: notFound("Car not found")
             call.respond(car)
         }
         delete("/{id}") {
+            call.requireMember()
             if (!CarRepository.delete(call.user.userId, call.longParam("id"))) notFound("Car not found")
             call.respond(HttpStatusCode.NoContent)
         }
         // multipart/form-data with one or more "photo" file parts
         post("/{id}/photos") {
+            call.requireMember()
             val carId = call.longParam("id")
             val uploaded = mutableListOf<PhotoDto>()
             call.receiveMultipart(formFieldLimit = PhotoService.MAX_UPLOAD_BYTES.toLong()).forEachPart { part ->
@@ -139,10 +145,12 @@ fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramId
 
     route("/photos/{id}") {
         delete {
+            call.requireMember()
             photos.delete(call.user.userId, call.longParam("id"))
             call.respond(HttpStatusCode.NoContent)
         }
         post("/cover") {
+            call.requireMember()
             photos.setCover(call.user.userId, call.longParam("id"))
             call.respond(HttpStatusCode.NoContent)
         }
@@ -179,6 +187,7 @@ fun Route.apiRoutes(photos: PhotoService, telegram: TelegramApi, adminTelegramId
     }
 
     post("/laps") {
+        call.requireMember()
         val req = call.receive<LapRequest>()
         val car = CarRepository.find(req.carId) ?: badRequest("Unknown car")
         if (car.userId != call.user.userId) forbidden("You can only log laps with your own cars")
@@ -284,6 +293,11 @@ private fun CarRequest.validated(): CarRequest {
             if (sy != null && year != null && sy < year) badRequest("soldYear can't be before the car's year")
         },
     )
+}
+
+/** Browsing is open to everyone in Telegram; changes need membership in the club group. */
+private fun ApplicationCall.requireMember() {
+    if (!user.isMember) forbidden("Only members of the Petrolheads group can do this")
 }
 
 private fun ApplicationCall.longParam(name: String): Long =

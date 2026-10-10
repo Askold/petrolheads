@@ -59,7 +59,8 @@ export type Photo = {
   cutoutStatus: CutoutStatus;
 };
 
-export type Meta = { botUsername: string | null };
+/** isMember: the viewer may add and change things; otherwise the app is read-only for them. */
+export type Meta = { botUsername: string | null; isMember: boolean; groupInviteUrl: string | null };
 
 export type Track = {
   id: number;

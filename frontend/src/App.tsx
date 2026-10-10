@@ -11,6 +11,7 @@ import { CarFormScreen } from "./screens/CarFormScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { useI18n } from "./i18n";
+import { Footer } from "./components/Footer";
 import { bindBackButton } from "./telegram";
 
 type Tab = "profile" | "leaderboard" | "drivers" | "admin";
@@ -79,6 +80,7 @@ export default function App() {
             )}
           </motion.div>
         </AnimatePresence>
+        <Footer />
       </main>
 
       <MusicPlayer />
